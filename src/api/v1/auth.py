@@ -139,6 +139,9 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db=Depends(get_asyn
     access_token = auth_service.create_jwt_token(
         payload={"email": user.email}
     )
+
+    auth_service.cache_user(user.email, user)
+    
     return {"access_token": access_token}
 
 
@@ -227,20 +230,3 @@ async def request_email(
     )
     
     return {"message": "New confirmation email sent"}
-
-
-
-# @router.patch("/avatar", response_model=User)
-# async def update_avatar_user(
-#     file: UploadFile = File(),
-#     user: User = Depends(get_current_user),
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     avatar_url = UploadFileService(
-#         settings.CLD_NAME, settings.CLD_API_KEY, settings.CLD_API_SECRET
-#     ).upload_file(file, user.username)
-
-#     user_service = UserService(db)
-#     user = await user_service.update_avatar_url(user.email, avatar_url)
-
-#     return user

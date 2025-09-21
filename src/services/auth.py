@@ -107,6 +107,25 @@ class AuthService:
             raise
         except Exception as err:
             raise
+        
+    def cache_user(self, email: str, user: UserModel):
+        """
+        Caches a user object in Redis.
+        """
+        user_key = f"user:{email}"
+        user_data = pickle.dumps(user)
+        self.redis_client.setex(user_key, timedelta(hours=1), user_data)
+        
+    # Метод для отримання користувача з кешу
+    def get_cached_user(self, email: str) -> Optional[UserModel]:
+        """
+        Retrieves a user object from Redis cache.
+        """
+        user_key = f"user:{email}"
+        user_data = self.redis_client.get(user_key)
+        if user_data:
+            return pickle.loads(user_data)
+        return None
 
 
 # ---------------- DEPENDENCIES ----------------
@@ -118,24 +137,39 @@ def get_auth_service() -> AuthService:
     """Dependency that returns an instance of AuthService."""
     return auth_service
 
+
+import logging
+logger = logging.getLogger(__name__)
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_async_session),
 ) -> UserModel:
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
     )
 
+    # 1. Розшифровуємо токен, щоб отримати email. Це БЕЗ запиту до БД.
     email = auth_service.decode_jwt_token(token, scope="access_token")
 
     if email is None:
         raise credentials_exception
+    
+    # 2. Перевіряємо, чи є користувач у кеші.
+    cached_user = auth_service.get_cached_user(email)
+    if cached_user:
+        return cached_user
 
+    # 3. Якщо в кеші немає, тільки тоді йдемо в базу даних.
     user_repo = UserRepository(db)
     user = await user_repo.get_user_by_email(email)
 
     if user is None:
         raise credentials_exception
+
+    # 4. Кешуємо користувача для наступних запитів.
+    auth_service.cache_user(email, user)
 
     return user
