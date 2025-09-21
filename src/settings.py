@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     CLD_API_SECRET: str
 
     model_config = ConfigDict(
-        env_file=".env",
+        env_file=".env.docker",
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore"

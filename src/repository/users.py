@@ -62,46 +62,6 @@ class UserRepository:
         """
         return await self.db.get(UserModel, user_id)
 
-    async def update_user(
-        self, user_id: int, user_in: UserUpdateSchema
-    ) -> Optional[UserModel]:
-        """
-        Updates an existing user.
-        """
-        db_user = await self.db.get(UserModel, user_id)
-        if db_user:
-            for field, value in user_in.model_dump(exclude_unset=True).items():
-                setattr(db_user, field, value)
-            await self.db.commit()
-            await self.db.refresh(db_user)
-        return db_user
-
-    async def delete_user(self, user_id: int) -> Optional[UserModel]:
-        """
-        Deletes a user by their ID.
-        """
-        db_user = await self.db.get(UserModel, user_id)
-        if db_user:
-            await self.db.delete(db_user)
-            await self.db.commit()
-            return db_user
-        return None
-    
-    async def update_refresh_token(self, user: UserModel, refresh_token: str):
-        """
-        Updates the refresh token for a user.
-        """
-        user.refresh_token = refresh_token
-        await self.db.commit()
-
-    async def get_user_by_refresh_token(self, refresh_token: str) -> Optional[UserModel]:
-        """
-        Retrieves a user by their refresh token.
-        """
-        stmt = select(UserModel).filter(UserModel.refresh_token == refresh_token)
-        result = await self.db.execute(stmt)
-        return result.scalars().first()
-
     async def update_user_avatar(self, user_id: int, new_avatar_url: str) -> Optional[UserModel]:
         """
         Updates the avatar URL for a user by their ID.
