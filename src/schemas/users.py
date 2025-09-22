@@ -27,8 +27,8 @@ class UserCreateSchema(UserBaseSchema):
     """
 
     password: str = Field(min_length=6)
-    avatar: Optional[str] = None
-    confirmed: bool = False
+    avatar: str | None = None 
+    confirmed: bool = False 
 
 
 class UserLoginSchema(BaseModel):

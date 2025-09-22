@@ -21,8 +21,9 @@ class Base(DeclarativeBase):
 
 
 class Role(enum.Enum):
-  admin: str = "admin"
-  user: str = "user"
+    ADMIN = "admin"
+    MODERATOR = "moderator"
+    USER = "user"
 
 
 class UserModel(Base):
@@ -34,7 +35,7 @@ class UserModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     avatar: Mapped[str] = mapped_column(String(255), nullable=True)
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
-    role = Column("role", Enum(Role), default=Role.user)
+    role = Column("role", Enum(Role), default=Role.USER)
 
 
 class ContactsModel(Base):

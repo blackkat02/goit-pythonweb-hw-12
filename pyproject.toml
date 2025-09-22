@@ -34,4 +34,5 @@ dev = [
     "pytest-mock == 3.14.0",
     "sphinx-markdown-builder == 0.5.5",
     "uv == 0.1.41",
+    "aiosqlite == 0.21.0",
 ]

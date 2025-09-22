@@ -84,7 +84,7 @@ async def update_avatar_user(
     file: UploadFile = File(),
     user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
-    check_role: RoleChecker = Depends(RoleChecker([Role.admin]))
+    check_role: RoleChecker = Depends(RoleChecker([Role.ADMIN]))
 ):
     """
     Updates the authenticated user's avatar.

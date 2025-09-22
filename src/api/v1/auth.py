@@ -56,6 +56,7 @@ def read_current_user(current_user: UserModel = Depends(get_current_user)):
     """
     return current_user
 
+
 @router.post("/signup", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED)
 async def signup(
     body: UserCreateSchema,
