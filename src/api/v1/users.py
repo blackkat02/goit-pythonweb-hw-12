@@ -22,7 +22,8 @@ from src.schemas.users import (
 )
 from src.repository.users import UserRepository
 from src.services.auth import AuthService, get_current_user
-from src.database.models import UserModel
+from src.services.permissions import RoleChecker
+from src.database.models import UserModel, Role 
 from src.services.cloudinary_service import UploadFileService
 from src.settings import settings
 
@@ -79,9 +80,11 @@ async def read_user(user_id: int, db: AsyncSession = Depends(get_async_session))
 
 @router.patch("/avatar", response_model=UserResponseSchema, status_code=status.HTTP_200_OK)
 async def update_avatar_user(
+    user_id: int,
     file: UploadFile = File(),
     user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
+    check_role: RoleChecker = Depends(RoleChecker([Role.admin]))
 ):
     """
     Updates the authenticated user's avatar.

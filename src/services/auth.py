@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.db import get_async_session
 from src.settings import settings
 from src.repository.users import UserRepository
-from src.database.models import UserModel
+from src.database.models import UserModel, Role 
 
 
 # ---------------- FASTMAIL CONFIG ----------------

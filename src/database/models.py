@@ -20,6 +20,11 @@ class Base(DeclarativeBase):
     pass
 
 
+class Role(enum.Enum):
+  admin: str = "admin"
+  user: str = "user"
+
+
 class UserModel(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -30,6 +35,7 @@ class UserModel(Base):
     avatar: Mapped[str] = mapped_column(String(255), nullable=True)
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     role = Column("role", Enum(Role), default=Role.user)
+
 
 class ContactsModel(Base):
     __tablename__ = "contacts"
@@ -60,7 +66,3 @@ class TokenModel(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     user = relationship("UserModel", backref="tokens")
-
-class RoleModel(enum.Enum):
-  admin: str = "admin"
-  user: str = "user"

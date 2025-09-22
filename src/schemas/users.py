@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 from typing import Optional
 from datetime import datetime
 
+from src.database.models import Role
 
 # --- Базові схеми ---
 
@@ -49,9 +50,12 @@ class UserResponseSchema(UserBaseSchema):
     """
 
     id: int
+    username: str
+    email: str
     created_at: datetime
-    avatar: Optional[str] = None
-    confirmed: bool = False
+    avatar: str | None
+    confirmed: bool
+    role: Role
 
     model_config = ConfigDict(from_attributes=True)
 

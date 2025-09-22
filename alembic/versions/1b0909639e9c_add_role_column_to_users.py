@@ -1,8 +1,8 @@
-"""Initial migration
+"""Add role column to users
 
-Revision ID: c22aa82307bf
+Revision ID: 1b0909639e9c
 Revises: 
-Create Date: 2025-09-20 17:27:53.908253
+Create Date: 2025-09-22 09:52:46.785750
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c22aa82307bf'
+revision: str = '1b0909639e9c'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,6 +29,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('avatar', sa.String(length=255), nullable=True),
     sa.Column('confirmed', sa.Boolean(), nullable=False),
+    sa.Column('role', sa.Enum('admin', 'user', name='role'), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)

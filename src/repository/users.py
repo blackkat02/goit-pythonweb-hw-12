@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.models import UserModel
-from src.schemas.users import UserCreateSchema, UserUpdateSchema
+from src.schemas.users import UserCreateSchema, UserUpdatePasswordSchema, UserUpdateSchema
 from libgravatar import Gravatar
 
 
