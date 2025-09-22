@@ -1,4 +1,5 @@
 import pytest
+from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.schemas.users import UserCreateSchema
 from src.repository.users import UserRepository
@@ -284,4 +285,3 @@ async def test_get_users_with_pagination(async_session: AsyncSession):
     assert len(retrieved_users) == limit
     # Users should be ordered by ID, so we check the first user's username
     assert retrieved_users[0].username.startswith("pag_user_")
-
