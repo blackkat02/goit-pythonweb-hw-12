@@ -1,10 +1,8 @@
 import sys
 import os
+import asyncio
 
 sys.path.insert(0, os.path.abspath('.'))
-
-
-import asyncio
 
 import pytest
 import pytest_asyncio
@@ -14,9 +12,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from src.services.auth import AuthService
 
 from main import app
-from src.database.models import Base, UserModel, Role, ContactsModel 
+from src.database.models import Base, UserModel, Role
 from src.database.db import get_async_session
-
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -37,58 +34,62 @@ test_user = {
     "role": "user",
 }
 
-@pytest.fixture(scope="module", autouse=True)
-def init_models_wrap():
-    async def init_models():
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
-        async with TestingSessionLocal() as session:
-            # Оновіть цей рядок:
-            # hash_password = Hash().get_password_hash(test_user["password"])
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
-            auth_service = AuthService()
-            hash_password = auth_service.hash_password(test_user["password"])
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def init_models():
+    """Clean database and create tables before each test."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # Create test user for each test
+    async with TestingSessionLocal() as session:
+        auth_service = AuthService()
+        hash_password = auth_service.hash_password(test_user["password"])
+        
+        current_user = UserModel(
+            username=test_user["username"],
+            email=test_user["email"],
+            hashed_password=hash_password,
+            confirmed=True,
+            avatar="https://twitter.com/gravatar",
+            role=Role.USER,
+        )
+        session.add(current_user)
+        await session.commit()
 
-            current_user = UserModel(
-                username=test_user["username"],
-                email=test_user["email"],
-                hashed_password=hash_password,
-                confirmed=True,
-                avatar="https://twitter.com/gravatar",
-                role=Role.USER,
-            )
-            session.add(current_user)
-            await session.commit()
+@pytest_asyncio.fixture(scope="function")
+async def async_session():
+    """Create a clean database session for each test."""
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        await session.close()
 
-    asyncio.run(init_models())
-
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def client():
-    """
-    Fixture to provide a TestClient with the database dependency overridden.
-    This client will use the in-memory test database.
-    """
-    # Override the get_db dependency to use the test session
-    async def override_get_db():
-        async with TestingSessionLocal() as session:
-            try:
-                yield session
-            except Exception:
-                await session.rollback()
-                raise
+    """Test client that creates a new session for each test."""
+    async def override_get_async_session():
+        session = TestingSessionLocal()
+        try:
+            yield session
+        finally:
+            await session.close()
 
-    app.dependency_overrides[get_async_session] = override_get_db
-
+    app.dependency_overrides[get_async_session] = override_get_async_session
     yield TestClient(app)
+    app.dependency_overrides.clear()
 
-
-@pytest_asyncio.fixture()
+@pytest.fixture(scope="function")
 async def get_token(client):
-    """
-    Fixture to get an access token by making a real login request.
-    This correctly simulates the user authentication flow.
-    """
+    """Fixture to get an access token for authenticated tests."""
     form_data = {
         "username": test_user["email"],
         "password": test_user["password"]
@@ -96,19 +97,3 @@ async def get_token(client):
     response = client.post("/api/auth/login", data=form_data)
     assert response.status_code == 200, response.text
     return response.json()["access_token"]
-
-
-from collections.abc import AsyncGenerator
-
-
-@pytest_asyncio.fixture()
-async def async_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Provides an isolated async database session for unit tests.
-    Each test runs in a transaction that is rolled back at the end.
-    """
-    async with TestingSessionLocal() as session:
-        # Begin a transaction
-        async with session.begin():
-            yield session
-
