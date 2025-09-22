@@ -8,11 +8,13 @@ from fastapi import (
     Query,
     UploadFile, 
     File,
+    Body,
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from fastapi_limiter.depends import RateLimiter
+from datetime import timedelta
 from src.database.db import get_async_session
 from src.schemas.users import (
     UserBaseSchema,
@@ -20,6 +22,7 @@ from src.schemas.users import (
     UserLoginSchema,
     UserResponseSchema,
     UserUpdateSchema,
+    UserUpdatePasswordSchema
 )
 from src.schemas.auth import RequestEmailSchema
 from src.repository.users import UserRepository
@@ -230,3 +233,84 @@ async def request_email(
     )
     
     return {"message": "New confirmation email sent"}
+
+
+
+@router.post("/request_password_reset", status_code=status.HTTP_202_ACCEPTED)
+async def request_password_reset(
+    body: RequestEmailSchema,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """
+    Requests a password reset link to be sent to the user's email.
+    
+    This endpoint is designed to be secure against email enumeration attacks.
+    It returns a success message regardless of whether the email exists,
+    preventing attackers from validating email addresses.
+
+    :param body: The request body containing the user's email.
+    :type body: RequestEmailSchema
+    :param background_tasks: FastAPI background tasks for asynchronous email sending.
+    :type background_tasks: BackgroundTasks
+    :param request: The incoming request object.
+    :type request: Request
+    :param db: The asynchronous database session dependency.
+    :type db: AsyncSession
+    :return: A dictionary with a success message.
+    :rtype: dict
+    """
+    user_repo = UserRepository(db)
+    user = await user_repo.get_user_by_email(body.email)
+    
+    if user:
+        auth_service = AuthService()
+        reset_token = auth_service.create_jwt_token(
+            {"email": user.email},
+            scope="password_reset",
+            expires_delta=10 
+        )
+        
+        background_tasks.add_task(
+            auth_service.send_password_reset_email,
+            email=user.email,
+            token=reset_token,
+            host=str(request.base_url)
+        )
+    
+    # Завжди повертаємо одну й ту ж відповідь, незалежно від того, чи знайдено користувача
+    return {"message": "If a user with that email exists, a password reset link has been sent."}
+
+
+@router.post("/reset_password/{token}")
+async def reset_password(
+    token: str,
+    body: UserUpdatePasswordSchema,  
+    db: AsyncSession = Depends(get_async_session)
+):
+    auth_service = AuthService()
+    user_repo = UserRepository(db)
+
+    try:
+        email = auth_service.decode_jwt_token(token, scope="password_reset")
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired token."
+        )
+
+    user = await user_repo.get_user_by_email(email)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    # Використовуємо дані з моделі
+    hashed_password = auth_service.hash_password(body.new_password)
+    await user_repo.update_password(user, hashed_password)
+
+    auth_service.redis_client.delete(f"user:{user.email}")
+
+    return {"message": "Password has been successfully reset."}

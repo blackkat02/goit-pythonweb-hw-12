@@ -80,3 +80,11 @@ class UserRepository:
         stmt = update(UserModel).where(UserModel.email == email).values(confirmed=True)
         await self.db.execute(stmt)
         await self.db.commit()
+
+
+    async def update_password(self, user: UserModel, hashed_password: str):
+        user.hashed_password = hashed_password
+        self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user

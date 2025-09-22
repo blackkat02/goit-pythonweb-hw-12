@@ -79,3 +79,10 @@ class TokenSchema(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+  
+class UserUpdatePasswordSchema(BaseModel):
+    """
+    Схема для оновлення пароля користувача.
+    """
+    new_password: str = Field(min_length=6, max_length=50)

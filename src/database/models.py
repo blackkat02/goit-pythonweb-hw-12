@@ -8,7 +8,9 @@ from sqlalchemy import (
     func,
     Boolean,
     UniqueConstraint,
+    Enum,
 )
+import enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import date, datetime
 from uuid import uuid4 
@@ -27,7 +29,7 @@ class UserModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     avatar: Mapped[str] = mapped_column(String(255), nullable=True)
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
-
+    role = Column("role", Enum(Role), default=Role.user)
 
 class ContactsModel(Base):
     __tablename__ = "contacts"
@@ -58,3 +60,7 @@ class TokenModel(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     user = relationship("UserModel", backref="tokens")
+
+class RoleModel(enum.Enum):
+  admin: str = "admin"
+  user: str = "user"

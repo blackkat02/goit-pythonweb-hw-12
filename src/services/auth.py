@@ -2,7 +2,7 @@ import sys
 import asyncio
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, List
 
 import redis
 import pickle
@@ -126,6 +126,20 @@ class AuthService:
         if user_data:
             return pickle.loads(user_data)
         return None
+    
+    async def send_password_reset_email(self, email: str, token: str, host: str):
+        """Асинхронна відправка листа для скидання пароля."""
+        
+        template = env.get_template("email_password_reset.html")
+        html_body = template.render(token=token, host=host)
+        
+        message = MessageSchema(
+            subject="Password Reset",
+            recipients=[email],
+            body=html_body,
+            subtype=MessageType.html,
+        )
+        await fm.send_message(message)
 
 
 # ---------------- DEPENDENCIES ----------------
