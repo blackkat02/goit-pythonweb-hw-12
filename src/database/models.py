@@ -21,9 +21,9 @@ class Base(DeclarativeBase):
 
 
 class Role(enum.Enum):
-    ADMIN = "admin"
-    MODERATOR = "moderator"
-    USER = "user"
+    ADMIN = "ADMIN"
+    MODERATOR = "MODERATOR"
+    USER = "USER"
 
 
 class UserModel(Base):
